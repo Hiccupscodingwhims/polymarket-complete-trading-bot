@@ -1,0 +1,15 @@
+{
+  "name": "polymarket-final-bot",
+  "version": "1.0.0",
+  "description": "bot that trades on polymarket",
+  "main": "engine.js",
+  "type": "module",
+  "scripts": {
+    "test": "start"
+  },
+  "author": "Hiccup",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
