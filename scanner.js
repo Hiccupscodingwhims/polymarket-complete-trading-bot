@@ -22,48 +22,37 @@ function timeoutFetch(url, ms) {
 
 export async function scan(config) {
   const scanStart = Date.now();
-  console.log('\n🔍 ============ STARTING SCAN ============');
-  console.log(`   Config: ${config.MIN_PROBABILITY}-${config.MAX_PROBABILITY} prob, ${config.MAX_HOURS_TO_CLOSE}h window, $${config.MIN_LIQUIDITY_USD} min liq`);
   
   try {
-    // Step 1: Fetch all events
-    console.log('\n📡 Step 1/4: Fetching events from API...');
     const discovery = await fetchAllEvents();
-    console.log(`✅ Fetched ${discovery.events.length} events`);
+    console.log(`📥 Events: ${discovery.events.length}`);
     
-    // Step 2: Pre-filter events and collect markets
-    console.log('\n🔄 Step 2/4: Pre-filtering events and collecting markets...');
-    const { marketJobs, counters } = collectMarketJobs(discovery.events);
-    
-    console.log(`   Locked events skipped: ${counters.lockedCount}`);
-    console.log(`   Slug pattern skipped: ${counters.skippedSlugCount}`);
-    console.log(`   📋 Markets to check: ${marketJobs.length}`);
+    const { marketJobs } = collectMarketJobs(discovery.events);
+    console.log(`📋 Markets to fetch: ${marketJobs.length}`);
     
     if (marketJobs.length === 0) {
-      console.log('\n⚠️  No markets to check after pre-filtering');
-      logScanSummary(scanStart, counters, []);
+      console.log(`📊 Scan: 0 eligible markets`);
       return [];
     }
     
-    // Step 3: Process markets in parallel batches
-    console.log(`\n⚡ Step 3/4: Processing ${marketJobs.length} markets (${BATCH_SIZE} at a time)...`);
     const { eligible, marketCounters } = await processMarketBatches(marketJobs, config);
     
-    // Merge counters
-    const finalCounters = {
-      ...counters,
-      ...marketCounters
-    };
+    const totalTime = ((Date.now() - scanStart) / 1000).toFixed(1);
+    const fetchSuccess = marketCounters.checked - marketCounters.fetchErrors;
     
-    // Step 4: Log summary
-    console.log('\n📊 Step 4/4: Scan complete!');
-    logScanSummary(scanStart, finalCounters, eligible);
+    console.log(`📊 Scan complete: ${eligible.length} eligible (${totalTime}s)`);
+    console.log(`   Markets fetched: ${fetchSuccess}/${marketCounters.checked} (${marketCounters.fetchErrors} failed)`);
+    
+    if (eligible.length > 0) {
+      eligible.forEach((m, i) => {
+        console.log(`   ${i + 1}. ${m.slug} ${m.side} @ ${m.bestAsk.toFixed(3)}`);
+      });
+    }
     
     return eligible;
     
   } catch (err) {
-    console.error('\n❌ SCANNER CRASHED:', err.message);
-    console.error(err.stack);
+    console.error('❌ Scanner error:', err.message);
     return [];
   }
 }
@@ -107,19 +96,13 @@ async function processMarketBatches(marketJobs, config) {
     fetchErrors: 0
   };
   
-  const totalBatches = Math.ceil(marketJobs.length / BATCH_SIZE);
-  let currentBatch = 0;
-  
   for (let i = 0; i < marketJobs.length; i += BATCH_SIZE) {
-    currentBatch++;
     const batch = marketJobs.slice(i, i + BATCH_SIZE);
     
-    // Process batch in parallel
     const results = await Promise.allSettled(
       batch.map(job => checkMarket(job, config))
     );
     
-    // Collect results
     for (const result of results) {
       counters.checked++;
       
@@ -130,28 +113,16 @@ async function processMarketBatches(marketJobs, config) {
       
       const { outcome, filters } = result.value;
       
-      // Update filter counters
       if (filters.timeFilter) counters.timeFilterCount++;
       if (filters.probFilter) counters.probFilterCount++;
       if (filters.liquidityFilter) counters.liquidityFilterCount++;
       if (filters.fetchError) counters.fetchErrors++;
       
-      // Add to eligible if found
       if (outcome) {
         eligible.push(outcome);
-        console.log(`   ✅ ${outcome.slug}`);
-        console.log(`      ${outcome.side} @ ${outcome.bestAsk.toFixed(3)} | Prob: ${outcome.probability.toFixed(3)} | ${outcome.hoursToClose.toFixed(1)}h | Liq: $${(outcome.bestAsk * outcome.askSize).toFixed(2)}`);
       }
     }
     
-    // Progress update every 5 batches or on last batch
-    if (currentBatch % 5 === 0 || currentBatch === totalBatches) {
-      const progress = ((counters.checked / marketJobs.length) * 100).toFixed(1);
-      const elapsed = ((Date.now() - Date.now()) / 1000).toFixed(1);
-      console.log(`   📊 Progress: ${counters.checked}/${marketJobs.length} (${progress}%) | Batch ${currentBatch}/${totalBatches} | Found: ${eligible.length}`);
-    }
-    
-    // Delay between batches (except last one)
     if (i + BATCH_SIZE < marketJobs.length) {
       await delay(DELAY_BETWEEN_BATCHES);
     }
@@ -275,23 +246,21 @@ function hoursUntil(iso) {
 }
 
 async function fetchAllEvents() {
-  console.log('   Fetching event batches...');
   const events = [];
   let offset = 0;
-  let pageCount = 0;
+  
+  console.log(`   🔍 Fetching events from Polymarket API...`);
   
   while (true) {
     let batch;
     try {
-      const res = await timeoutFetch(
-        `https://gamma-api.polymarket.com/events?closed=false&limit=100&offset=${offset}`,
-        REQUEST_TIMEOUT
-      );
+      const url = `https://gamma-api.polymarket.com/events?closed=false&limit=100&offset=${offset}`;
+      const res = await timeoutFetch(url, REQUEST_TIMEOUT);
       
       if (!res.ok) {
-        console.log(`   ⚠️  HTTP ${res.status} at offset ${offset}`);
+        console.log(`   ⚠️  API returned HTTP ${res.status}`);
         if (res.status === 429) {
-          console.log('   🚫 Rate limited - waiting 60s...');
+          console.log(`   ⏳ Rate limited, waiting 60s...`);
           await delay(60000);
           continue;
         }
@@ -300,13 +269,15 @@ async function fetchAllEvents() {
       
       batch = await res.json();
     } catch (err) {
-      console.log(`   ⚠️  Failed at offset ${offset}: ${err.message}`);
+      console.log(`   ❌ Fetch failed at offset ${offset}: ${err.message}`);
       break;
     }
     
-    if (!batch?.length) break;
+    if (!batch?.length) {
+      console.log(`   ✅ Reached end of events (offset: ${offset})`);
+      break;
+    }
     
-    // Filter events with markets
     const validEvents = batch
       .filter(e => e.markets?.length)
       .map(e => ({
@@ -317,20 +288,12 @@ async function fetchAllEvents() {
       }));
     
     events.push(...validEvents);
-    pageCount++;
-    
-    // Progress update every 10 pages
-    if (pageCount % 10 === 0) {
-      console.log(`   ... fetched ${events.length} events (${pageCount} pages)`);
-    }
-    
     offset += 100;
     
-    // Stop if we got less than 100 (last page)
     if (batch.length < 100) break;
   }
   
-  console.log(`   ✅ Total events fetched: ${events.length} (${pageCount} pages)`);
+  console.log(`   ✅ Fetched ${events.length} events total`);
   return { events };
 }
 
@@ -349,29 +312,4 @@ async function fetchOrderbook(tokenId) {
     REQUEST_TIMEOUT
   );
   return res.json();
-}
-
-function logScanSummary(scanStart, counters, eligible) {
-  const totalTime = ((Date.now() - scanStart) / 1000).toFixed(1);
-  
-  console.log('\n📊 ============ SCAN SUMMARY ============');
-  console.log(`   ⏱️  Total time: ${totalTime}s`);
-  console.log(`   📥 Markets checked: ${counters.checked || 0}`);
-  console.log('\n   Filter Results:');
-  console.log(`   🔒 Locked events: ${counters.lockedCount}`);
-  console.log(`   ⏰ Time filter (>${counters.MAX_HOURS_TO_CLOSE || '?'}h): ${counters.timeFilterCount}`);
-  console.log(`   🎯 Slug patterns skipped: ${counters.skippedSlugCount}`);
-  console.log(`   📊 Probability filter: ${counters.probFilterCount}`);
-  console.log(`   💧 Liquidity filter: ${counters.liquidityFilterCount}`);
-  console.log(`   ❌ Fetch errors: ${counters.fetchErrors}`);
-  console.log(`\n   ✅ ELIGIBLE MARKETS: ${eligible.length}`);
-  
-  if (eligible.length > 0) {
-    console.log('\n   Found markets:');
-    eligible.forEach((m, i) => {
-      console.log(`   ${i + 1}. ${m.slug} (${m.side})`);
-    });
-  }
-  
-  console.log('========================================\n');
 }

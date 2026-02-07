@@ -1,24 +1,30 @@
 // logger.js
-import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config';
 
-const CSV_FILE = './trades.csv';
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
-if (!fs.existsSync(CSV_FILE)) {
-  fs.writeFileSync(CSV_FILE, 'timestamp,slug,side,entryPrice,size,cost,resolution,payout,pnl\n');
-}
+export async function logTrade(pos, resolution, payout, pnl) {
+  try {
+    const { error } = await supabase
+      .from('trades')
+      .insert({
+        timestamp: new Date().toISOString(),
+        slug: pos.slug,
+        side: pos.side,
+        entry_price: pos.entryPrice,
+        size: pos.size,
+        cost: pos.cost,
+        resolution,
+        payout,
+        pnl
+      });
 
-export function logTrade(pos, resolution, payout, pnl) {
-  const row = [
-    new Date().toISOString(),
-    pos.slug,
-    pos.side,
-    pos.entryPrice,
-    pos.size.toFixed(4),
-    pos.cost.toFixed(2),
-    resolution,
-    payout.toFixed(2),
-    pnl.toFixed(2)
-  ].join(',');
-  
-  fs.appendFileSync(CSV_FILE, row + '\n');
+    if (error) console.error('Supabase insert error:', error.message);
+  } catch (err) {
+    console.error('Failed to log trade:', err.message);
+  }
 }
