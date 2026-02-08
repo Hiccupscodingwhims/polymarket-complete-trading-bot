@@ -14,7 +14,7 @@ const config = {
   PER_MARKET_CAP: 2
 };
 
-const CYCLE_INTERVAL = 1 * 60 * 1000; // 1 minute
+const CYCLE_INTERVAL = 60 * 60 * 1000; // 1 minute
 
 // HTTP endpoint
 const app = express();
