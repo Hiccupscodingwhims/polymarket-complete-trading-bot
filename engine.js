@@ -4,60 +4,52 @@ import { load, save, state } from './state.js';
 import { scan } from './scanner.js';
 import { execute } from './executor.js';
 import { monitor } from './monitor.js';
-import 'dotenv/config';
 
 const config = {
   MAX_HOURS_TO_CLOSE: 4,
-  MIN_PROBABILITY: 0.85,
+  MIN_PROBABILITY: 0.80,
   MAX_PROBABILITY: 0.96,
-  MIN_LIQUIDITY_USD: 3,
-  STOP_PROB_DROP: 0.15,
+  MIN_LIQUIDITY_USD: 2,
+  STOP_PROB_DROP: 0.25,
   PER_MARKET_CAP: 2
 };
 
-const CYCLE_INTERVAL = 60 * 60 * 1000;
+const CYCLE_INTERVAL = 1 * 60 * 1000; // 1 minute
 
 // HTTP endpoint
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get('/state', (req, res) => {
-  // Calculate unrealized P&L
-  const unrealizedPnL = state.positions.reduce((sum, p) => {
-    // Assume current value = entry value (conservative)
-    // In reality you'd fetch current market prices
-    return sum + 0; // Can't calculate without current prices
-  }, 0);
-
-  // Calculate realized P&L
-  const realizedPnL = state.closedPositions.reduce((sum, p) => sum + p.pnl, 0);
-
   res.json({
     balance: state.wallet.balance,
     positions: state.positions.length,
     closedPositions: state.closedPositions.length,
     eventLocks: state.eventLocks.size,
-    realizedPnL: realizedPnL.toFixed(2),
+    realizedPnL: state.closedPositions.reduce((sum, p) => sum + p.pnl, 0).toFixed(2),
     totalValue: (state.wallet.balance + state.positions.reduce((s, p) => s + p.cost, 0)).toFixed(2),
     openTrades: state.positions.map(p => ({
       slug: p.slug,
       side: p.side,
       entryPrice: p.entryPrice,
       size: p.size,
-      cost: p.cost,
-      boughtAt: p.boughtAt
+      cost: p.cost
     })),
-    recentClosedTrades: state.closedPositions.slice(-10).map(p => ({
+    allClosedTrades: state.closedPositions.map(p => ({
       slug: p.slug,
+      side: p.side,
       resolution: p.resolution,
-      pnl: p.pnl,
+      pnl: p.pnl.toFixed(2),
       closedAt: p.closedAt
     }))
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`🌐 HTTP endpoint: http://localhost:${PORT}/state`);
+  const url = process.env.RAILWAY_STATIC_URL 
+    ? `https://${process.env.RAILWAY_STATIC_URL}/state`
+    : `http://localhost:${PORT}/state`;
+  console.log(`🌐 State endpoint: ${url}`);
 });
 
 async function cycle() {
@@ -74,7 +66,7 @@ async function cycle() {
     }
 
     save();
-
+    
     // Log state summary
     console.log(`📊 State: Balance=$${state.wallet.balance.toFixed(2)} | Open=${state.positions.length} | Closed=${state.closedPositions.length} | Locks=${state.eventLocks.size}`);
   } catch (err) {

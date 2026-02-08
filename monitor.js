@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import { state, closePosition, save } from './state.js';
 import { logTrade } from './logger.js';
 
-const FEE_RATE = 0.01;
+const FEE_RATE = 0.00;
 
 export async function monitor(config) {
   for (const p of state.positions) {

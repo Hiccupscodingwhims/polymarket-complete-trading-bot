@@ -54,5 +54,6 @@ export function closePosition(posId, resolution, payout, pnl) {
     pnl
   });
   
-  // eventId remains locked permanently
+  // Unlock event after position closes
+  state.eventLocks.delete(pos.eventId);
 }
