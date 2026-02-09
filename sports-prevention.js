@@ -8,7 +8,7 @@ async function generateRegex() {
         );
 
         // 1. Extract unique abbreviations and filter out nulls
-        const abbreviations = [...new Set(data.map(item => item.league).filter(Boolean))];
+        const abbreviations = [...new Set(data.map(item => item.abbreviation).filter(Boolean))];
 
         // 2. Escape any potential special characters
         const escapedAbbrs = abbreviations.map(str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));

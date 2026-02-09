@@ -241,13 +241,14 @@ function shouldSkipMarket(slug) {
   const s = slug.toLowerCase();
 
   // always-skip patterns (global, non-token based)
-  if (/15m|spl|1pt5|2pt5|3pt5|4pt5|win|lose|draw|super-bowl/.test(s)) {
+  if (/15m|spl|1pt5|2pt5|3pt5|4pt5|win|lose|draw|super-bowl|lol|dota2|cs2|valorant|0pt5|0pt/.test(s)) {
     return true;
   }
 
   // hyphen-tight abbreviation matcher
   // matches: -abbr-, -abbr, abbr-
-  const abbrRegex = /(?:^|-)(?:atp|lol|csgo|dota2|mlb|wta|per1|test|uel|cbb|abb|cehl|odi|wnba|shl|bnd|itc|cdr|valorant|codmw|ere|crint|khl|ipl|ahl|bpl|scop|dehl|crnew|cpl|t20|csa|tur|epl|she|crind|ecc|rl|craus|r6siege|eth|mlbb|bl2|cze1)(?:-|$)/;
+  const abbrRegex = /(?:^|-)(?:tien|lps|usa|partiz|oak|gauff|pain|col|190e|wca|jng|ajp|djere|afg|voc|akt1|crv1|gl|ydn1|gl1|svj|hood|syd|omega1|eer|mot|tac|wes|drg|z101|syd1|nyl|ie|mia|lbvc|faze|sabalen|invict1|vae|ske|lul|hv|not|hnames|b5|mile|ungd|juv|gh|sawangk|eng|ham|som|car|cfc1|glo|ad|ess|lei|kitcat|war|erie|mid|dep|wor|dur|67|ken|nor|mnm|yor|tty|eiq|cgaa|ivanov|sevasto|n5r|qlm|omit|ov|2mr|rad|202|rej|vvv|fro|lek|yak|par|sus|dv1|lan|der|ep3|min|sur|gla|vachero|haz|pt3|rscnj|ytigeres|psbev|clu|ober|prizmic|a1|hon|newgro|b2|win2|sas|kom|vit|spa|sou|din|dea|tor|pbks|uola|qat|bel|bar|ava|ska|sha|lin|roe|fae|los|ee1|ran|hig|basavar|joh|iusb|sfu|for|cha|gg3|cs1|tse|ben|khu|a2|nep|b1|ces|wss|ros|loyolo|rock|blx|and|org|na1|spk1|str1|xip|utt|s9|kenla|byg1|plz|pes|lit|mai1|adm|hcd|bry|mal|dju|seokst|net|dyn|hck|ehc|sev|mandlik|msr|sas1|zam|thomps|cd1|trt1|linf|alatam|k1ck|xk|ymc|kiz|pos1|rot|engel|nrg|cle|o2k|kru|chi|ank|ota|pro|lev3|tri|guy|st |ant|san1|sai|bri|tuc|bmg1|clc|kar|oliynyk|har|mou|tsx|new|lok|ast|uyu1|kz|ori2|sol1|am3|ago1|lajal|fbm|cdm|alb|fra1|sam|cabrera|ffq|gra|zsm|sib|tex|chl|k271|cro|sot1|gaston|bvb1|koe1|zerb|wle|9z|anb|chn|next|tsb|quinn|coa|pak|bgd|zhang|mas3|per|avg|reg|ren|paolini|collign|aga|martine|kwa|byga|tot1|ber2|la|pis|hat|g2h|hof1|pyu1|aus|roc|nam|olo|mla|luc|mum|nef|clgc|red3|esp3|lua|zaf|lib|font|tnc1|ahr|laa|eros|vis|ud3|sri|can|amaru|sakkari|myst|furia|wbd|mce|to|stu3|wob1|spp1|ent|aja1|wel|zwe|mw2|hue|val|uae|um|nym|savst|hurkacz|alm|allgam|ud7|vld|ud4|san|lon|lev|bir|man|tre|rso|sinqu|vil|aura1|mervox|hen|mornin|b8acad|spr|eld|wa|mertens|pr|qls|bur|evil|mir|srg|tlph|ova|koe|amo|ud|fouran|hsv|komodo|spirit1|cud|fkt|waltert|fearnle|sakatsu|boogey|fay|belle|ath|pegula|infer|bre|win|ass|ind2|flag|he|clo|sa|phch|omn|thu|wil|pol2|stm|ata|ver|b2g|asm1|thg|apo2|zim|tf3|sd1|sal|stp|pon|y123|eib|liquid|hyp1|td|ruzic|alexand|omen|bad1|ath1|pam|ulm|fch|cerundo|irl|svw|rp|vfl|bpe|rw|fio|nap|ser|tks|ont|roc1|raj|b361|rom1|cel|the|gadecki|hijikat|hewitt|home|thunde|dsb|p7|sonego|sam3|k23|wyg|medjedo|tpt|pdr|sau|nzl|del|monte|kol)(?:-|$)/;
+  
   return abbrRegex.test(s);
 }
 
