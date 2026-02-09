@@ -4,11 +4,11 @@ async function generateRegex() {
     try {
         // Load the JSON file using ESM-compatible methods
         const data = JSON.parse(
-            await readFile(new URL('./sports-prevention2.json', import.meta.url))
+            await readFile(new URL('./sports.json', import.meta.url))
         );
 
         // 1. Extract unique abbreviations and filter out nulls
-        const abbreviations = [...new Set(data.map(item => item.abbreviation).filter(Boolean))];
+        const abbreviations = [...new Set(data.map(item => item.sport).filter(Boolean))];
 
         // 2. Escape any potential special characters
         const escapedAbbrs = abbreviations.map(str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
