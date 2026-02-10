@@ -4,13 +4,14 @@ import { load, save, state } from './state.js';
 import { scan } from './scanner.js';
 import { execute } from './executor.js';
 import { monitor } from './monitor.js';
+import { startWebSocket, cleanup } from './websocket.js';
 
 const config = {
   MAX_HOURS_TO_CLOSE: 4,
   MIN_PROBABILITY: 0.80,
   MAX_PROBABILITY: 0.96,
   MIN_LIQUIDITY_USD: 2,
-  STOP_PROB_DROP: 0.25,
+  STOP_PRICE_DROP: 0.15, // 15% price drop from entry
   PER_MARKET_CAP: 2
 };
 
@@ -88,6 +89,9 @@ try {
   console.log(`💰 Starting balance: $${state.wallet.balance.toFixed(2)}`);
   console.log(`📦 Loaded ${state.positions.length} open positions`);
   console.log(`🔒 Locked events: ${state.eventLocks.size}`);
+  
+  // Start WebSocket for real-time stop loss
+  startWebSocket(config);
 } catch (err) {
   console.error('❌ Failed to load state:', err.message);
   process.exit(1);
@@ -113,6 +117,13 @@ setInterval(() => {
 }, SCAN_INTERVAL);
 
 process.stdin.resume();
+
+// Cleanup on exit
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down...');
+  cleanup();
+  process.exit(0);
+});
 
 console.log(`⏰ Monitor interval: ${MONITOR_INTERVAL / 1000}s (stop loss checks)`);
 console.log(`⏰ Scan interval: ${SCAN_INTERVAL / 1000}s (new markets)`);

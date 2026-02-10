@@ -1,5 +1,6 @@
 // executor.js
 import { state, addPosition, save } from './state.js';
+import { subscribePosition } from './websocket.js';
 
 export function execute(markets, config) {
   const { TOTAL_BUDGET, PER_MARKET_CAP } = config;
@@ -12,7 +13,6 @@ export function execute(markets, config) {
   const allocPerMarket = Math.min(baseAlloc, PER_MARKET_CAP);
 
   for (const m of markets) {
-    // ✅ CHECK: Skip if event was already locked in this batch
     if (state.eventLocks.has(m.eventId)) {
       console.log(`⏭️  Skipping ${m.slug} - event ${m.eventId} already locked`);
       continue;
@@ -39,6 +39,9 @@ export function execute(markets, config) {
       cost,
       boughtAt: new Date().toISOString()
     });
+
+    // Subscribe to WebSocket for real-time stop loss
+    subscribePosition(m.tokenId);
 
     console.log(`✅ BUY ${m.slug} ${m.side} @ ${price} | Size: ${maxSize.toFixed(2)} | Cost: $${cost.toFixed(2)}`);
   }
