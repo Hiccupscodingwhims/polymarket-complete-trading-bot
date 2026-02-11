@@ -11,7 +11,7 @@ const config = {
   MIN_PROBABILITY: 0.80,
   MAX_PROBABILITY: 0.96,
   MIN_LIQUIDITY_USD: 2,
-  STOP_PRICE_DROP: 0.15, // 15% price drop from entry
+  STOP_PRICE_DROP: 0.50, // 15% price drop from entry
   PER_MARKET_CAP: 2
 };
 
